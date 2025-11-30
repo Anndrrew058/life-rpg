@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人生RPG化日記</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --accent-color: #000000;
+            --bar-bg: #e0e0e0;
+            --hp-color: #ff4d4d;
+            --exp-color: #4d94ff;
+            --pixel-size: 4px;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'DotGothic16', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            text-align: center;
+            image-rendering: pixelated;
+        }
+
+        /* 布局容器 */
+        .container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 輸入區域 */
+        .input-section {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 15px;
+            font-size: 1.2rem;
+            border: 4px solid var(--text-color);
+            resize: vertical;
+            outline: none;
+            background-image: linear-gradient(transparent 95%, #eee 95%);
+            background-size: 100% 2rem;
+            line-height: 2rem;
+        }
+
+        /* 像素風格按鈕 */
+        .pixel-btn {
+            background-color: #fff;
+            border: 4px solid var(--text-color);
+            color: var(--text-color);
+            padding: 15px 30px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            text-align: center;
+            position: relative;
+            font-weight: bold;
+            transition: transform 0.1s;
+            box-shadow: 6px 6px 0px var(--text-color);
+            align-self: center;
+            min-width: 200px;
+        }
+
+        .pixel-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 2px 2px 0px var(--text-color);
+        }
+
+        .pixel-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 進度條區域 */
+        #loading-area {
+            display: none;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .loading-text {
+            text-align: center;
+            margin-bottom: 5px;
+            font-size: 1.2rem;
+        }
+
+        .progress-bar-frame {
+            width: 100%;
+            height: 30px;
+            border: 4px solid var(--text-color);
+            padding: 2px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background-color: var(--text-color);
+            transition: width 0.1s linear;
+        }
+
+        /* 狀態面板 */
+        .status-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 30px;
+            border-top: 4px dashed var(--text-color);
+            padding-top: 30px;
+        }
+
+        @media (max-width: 600px) {
+            .status-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .status-block {
+            border: 4px solid var(--text-color);
+            padding: 15px;
+            position: relative;
+            background: #fff;
+            box-shadow: 4px 4px 0 #ddd;
+        }
+
+        .status-block h3 {
+            margin-top: 0;
+            border-bottom: 2px solid var(--text-color);
+            padding-bottom: 5px;
+            font-size: 1.3rem;
+        }
+
+        /* 數值條 */
+        .stat-row {
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+
+        .bar-container {
+            width: 100%;
+            height: 16px;
+            background-color: var(--bar-bg);
+            border: 2px solid var(--text-color);
+        }
+
+        .bar-value {
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease-out;
+        }
+
+        .exp-bar { background-color: var(--exp-color); }
+        .hp-bar { background-color: var(--hp-color); }
+
+        /* 列表樣式 */
+        .item-list {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .item-tag {
+            border: 2px solid var(--text-color);
+            padding: 4px 8px;
+            font-size: 0.9rem;
+            background: #f0f0f0;
+            display: inline-block;
+        }
+
+        /* 彈出視窗 (Modal) */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border: 4px solid black;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 10px 10px 0 rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .modal-title {
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        .modal-body {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            text-align: left;
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+
+        .close-btn {
+            background: black;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            font-family: 'DotGothic16', sans-serif;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>人生 RPG</h1>
+
+    <div class="container">
+        <section class="input-section">
+            <div id="instruction-text" style="font-size: 1.1rem; font-weight: bold;"></div>
+            <textarea id="user-input" placeholder="在這裡輸入..."></textarea>
+            
+            <button id="settle-btn" class="pixel-btn">結 算</button>
+
+            <div id="loading-area">
+                <div class="loading-text">系統運算中...</div>
+                <div class="progress-bar-frame">
+                    <div id="loading-fill" class="progress-fill"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="status-area" class="status-panel" style="visibility: hidden;"> <div class="status-block">
+                <h3>狀態 (STATUS)</h3>
+                <div class="stat-row">
+                    <div class="stat-label"><span>稱呼</span> <span id="disp-name">-</span></div>
+                </div>
+                <div class="stat-row">
+                    <div class="stat-label"><span>等級 (年齡)</span> <span id="disp-level">LV.1</span></div>
+                </div>
+                <div class="stat-row">
+                    <div class="stat-label"><span>經驗值 (EXP)</span> <span id="disp-exp-text">0%</span></div>
+                    <div class="bar-container">
+                        <div id="disp-exp-bar" class="bar-value exp-bar"></div>
+                    </div>
+                </div>
+                <div class="stat-row">
+                    <div class="stat-label"><span>健康值 (HP)</span> <span id="disp-hp-text">100/100</span></div>
+                    <div class="bar-container">
+                        <div id="disp-hp-bar" class="bar-value hp-bar" style="width: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-block">
+                <h3>已解鎖成就</h3>
+                <div id="list-achievements" class="item-list"></div>
+            </div>
+
+            <div class="status-block">
+                <h3>已獲得稱號</h3>
+                <div id="list-titles" class="item-list"></div>
+            </div>
+
+            <div class="status-block">
+                <h3>已探索地點</h3>
+                <div id="list-locations" class="item-list"></div>
+            </div>
+
+            <div class="status-block">
+                <h3>特殊物品</h3>
+                <div id="list-items" class="item-list"></div>
+            </div>
+
+            <div class="status-block">
+                <h3>夥伴/寵物</h3>
+                <div id="list-pets" class="item-list"></div>
+            </div>
+        </section>
+    </div>
+
+    <div id="result-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title">結算完成 !</div>
+            <div id="modal-result-text" class="modal-body"></div>
+            <button class="close-btn" onclick="closeModal()">確 定</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 遊戲狀態管理 ---
+        const DEFAULT_STATE = {
+            isInitialized: false, // 是否完成第一階段(生平)
+            name: "冒險者",
+            age: 1, // 即等級
+            exp: 0,
+            maxExp: 100,
+            hp: 80,
+            maxHp: 100,
+            achievements: [],
+            titles: ["新手"],
+            locations: ["起始之村"],
+            items: [],
+            pets: []
+        };
+
+        let gameState = JSON.parse(localStorage.getItem('lifeRPG_State')) || JSON.parse(JSON.stringify(DEFAULT_STATE));
+
+        // --- DOM 元素 ---
+        const instructionText = document.getElementById('instruction-text');
+        const userInput = document.getElementById('user-input');
+        const settleBtn = document.getElementById('settle-btn');
+        const loadingArea = document.getElementById('loading-area');
+        const loadingFill = document.getElementById('loading-fill');
+        const statusArea = document.getElementById('status-area');
+        const modal = document.getElementById('result-modal');
+        const modalText = document.getElementById('modal-result-text');
+
+        // --- 初始化介面 ---
+        function initUI() {
+            if (!gameState.isInitialized) {
+                // 第一階段：生平設定
+                instructionText.textContent = "【系統提示】檢測到新靈魂。請簡述您的生平以生成基礎數值（包含姓名、職業、過去經歷...）";
+                userInput.placeholder = "例如：我叫阿明，今年25歲，是一名工程師，喜歡打籃球，養了一隻貓...";
+                settleBtn.textContent = "生成角色";
+                statusArea.style.visibility = 'hidden';
+            } else {
+                // 第二階段：日記模式
+                instructionText.textContent = `【今日任務】${gameState.name}，請記錄今天的冒險內容...`;
+                userInput.placeholder = "今天發生了什麼事？去了哪裡？獲得了什麼？";
+                settleBtn.textContent = "日記結算";
+                statusArea.style.visibility = 'visible';
+                renderStats();
+            }
+        }
+
+        // --- 渲染數值 ---
+        function renderStats() {
+            document.getElementById('disp-name').textContent = gameState.name;
+            document.getElementById('disp-level').textContent = `LV.${gameState.age}`;
+            
+            // EXP
+            let expPercent = (gameState.exp / gameState.maxExp) * 100;
+            document.getElementById('disp-exp-bar').style.width = `${expPercent}%`;
+            document.getElementById('disp-exp-text').textContent = `${Math.floor(gameState.exp)}/${gameState.maxExp}`;
+
+            // HP
+            let hpPercent = (gameState.hp / gameState.maxHp) * 100;
+            document.getElementById('disp-hp-bar').style.width = `${hpPercent}%`;
+            document.getElementById('disp-hp-text').textContent = `${gameState.hp}/${gameState.maxHp}`;
+
+            // Lists
+            renderList('list-achievements', gameState.achievements);
+            renderList('list-titles', gameState.titles);
+            renderList('list-locations', gameState.locations);
+            renderList('list-items', gameState.items);
+            renderList('list-pets', gameState.pets);
+        }
+
+        function renderList(elementId, dataArray) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = '';
+            if (dataArray.length === 0) {
+                container.innerHTML = '<span style="color:#999; font-size:0.8rem;">(無)</span>';
+                return;
+            }
+            dataArray.forEach(item => {
+                const tag = document.createElement('span');
+                tag.className = 'item-tag';
+                tag.textContent = item;
+                container.appendChild(tag);
+            });
+        }
+
+        // --- 核心邏輯：模擬 AI 分析 ---
+        function analyzeContent(text, isPhaseOne) {
+            let resultLogs = [];
+            let gainedExp = 0;
+            
+            // 關鍵字庫 (簡單模擬)
+            const keywords = {
+                health: ['運動', '健身', '跑步', '睡覺', '休息', '健康', '蔬菜', '水'],
+                knowledge: ['讀書', '學習', '上課', '研究', '程式', '工作', '專案'],
+                fun: ['遊戲', '電影', '逛街', '聊天', '旅行', '玩'],
+                items: ['買', '獲得', '收到', '撿到'],
+                locations: ['去', '到', '在']
+            };
+
+            if (isPhaseOne) {
+                // --- 階段一邏輯 ---
+                gameState.isInitialized = true;
+                
+                // 1. 嘗試抓取名字 (簡單邏輯：取"我叫xx"或前幾個字，這裡簡化處理)
+                const nameMatch = text.match(/我叫(.*?)[,，\s]/) || text.match(/我是(.*?)[,，\s]/);
+                if (nameMatch) gameState.name = nameMatch[1].trim();
+                else gameState.name = "神秘旅人";
+
+                // 2. 嘗試抓取年齡
+                const ageMatch = text.match(/(\d+)歲/);
+                if (ageMatch) gameState.age = parseInt(ageMatch[1]);
+                else gameState.age = 18; // 預設
+
+                // 3. 根據長度給予初始成就
+                if (text.length > 50) gameState.achievements.push("記憶深刻之人");
+                gameState.achievements.push("初來乍到");
+
+                // 4. 分析關鍵字給予初始物品/寵物
+                if (text.includes("貓") || text.includes("狗")) gameState.pets.push("童年玩伴");
+                if (text.includes("電腦") || text.includes("工程師")) gameState.items.push("舊筆電");
+
+                resultLogs.push(`角色創建成功！`);
+                resultLogs.push(`設定等級為 LV.${gameState.age}`);
+                resultLogs.push(`獲得稱號: [${gameState.titles[0]}]`);
+
+            } else {
+                // --- 階段二邏輯 (日記) ---
+                
+                // 基礎經驗值 (根據字數)
+                gainedExp = Math.floor(text.length / 2) + 10;
+                resultLogs.push(`紀錄了今日的足跡... 獲得 ${gainedExp} 點經驗值`);
+
+                // HP 變動邏輯
+                let hpChange = 0;
+                if (keywords.health.some(k => text.includes(k))) {
+                    hpChange = 5;
+                    resultLogs.push("進行了有益健康的活動，HP +5");
+                }
+                if (text.includes("熬夜") || text.includes("累") || text.includes("病")) {
+                    hpChange = -10;
+                    resultLogs.push("身體感到疲憊... HP -10");
+                }
+                gameState.hp = Math.min(gameState.maxHp, Math.max(0, gameState.hp + hpChange));
+
+                // 物品/地點解析 (簡易)
+                // 找 "去了XX"
+                const locMatch = text.match(/(?:去|到了|在)\s*([^,，。\s]+)/);
+                if (locMatch && locMatch[1].length < 6) {
+                    const newLoc = locMatch[1];
+                    if (!gameState.locations.includes(newLoc)) {
+                        gameState.locations.push(newLoc);
+                        resultLogs.push(`解鎖新地點: [${newLoc}]`);
+                        gainedExp += 20;
+                    }
+                }
+
+                // 找 "買了/獲得XX"
+                const itemMatch = text.match(/(?:買了|獲得|收到)\s*([^,，。\s]+)/);
+                if (itemMatch && itemMatch[1].length < 6) {
+                    const newItem = itemMatch[1];
+                    if (!gameState.items.includes(newItem)) {
+                        gameState.items.push(newItem);
+                        resultLogs.push(`獲得特殊物品: [${newItem}]`);
+                    }
+                }
+                
+                // 升級邏輯
+                gameState.exp += gainedExp;
+                while (gameState.exp >= gameState.maxExp) {
+                    gameState.exp -= gameState.maxExp;
+                    gameState.age += 1; // 這裡將等級視為年齡/資歷的增長
+                    gameState.maxExp = Math.floor(gameState.maxExp * 1.2);
+                    gameState.maxHp += 10;
+                    gameState.hp = gameState.maxHp; // 升級回血
+                    resultLogs.push(`✨ 恭喜升級！等級提升至 LV.${gameState.age}，HP完全恢復！`);
+                    gameState.achievements.push(`度過 ${gameState.age} 歲`);
+                }
+            }
+
+            // 保存資料
+            localStorage.setItem('lifeRPG_State', JSON.stringify(gameState));
+            
+            return resultLogs.join('\n');
+        }
+
+        // --- 事件處理 ---
+        settleBtn.addEventListener('click', () => {
+            const text = userInput.value.trim();
+            if (!text) {
+                alert("請輸入內容！");
+                return;
+            }
+
+            // UI 切換
+            settleBtn.disabled = true;
+            loadingArea.style.display = 'block';
+            loadingFill.style.width = '0%';
+
+            // 模擬讀取進度條動畫
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 10;
+                if (progress > 100) progress = 100;
+                loadingFill.style.width = `${progress}%`;
+
+                if (progress === 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        // 執行分析
+                        const resultText = analyzeContent(text, !gameState.isInitialized);
+                        
+                        // 完成後處理
+                        loadingArea.style.display = 'none';
+                        settleBtn.disabled = false;
+                        userInput.value = ''; // 清空輸入框
+                        
+                        // 顯示結果與更新 UI
+                        showModal(resultText);
+                        initUI(); // 重新判斷狀態並渲染
+                        
+                    }, 500);
+                }
+            }, 100);
+        });
+
+        function showModal(text) {
+            modalText.textContent = text;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+            // 滾動到底部查看更新
+            statusArea.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 啟動
+        initUI();
+        if(gameState.isInitialized) renderStats();
+
+    </script>
+</body>
+</html>
